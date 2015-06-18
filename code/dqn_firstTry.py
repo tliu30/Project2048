@@ -1,5 +1,6 @@
 import theanets
 from utils import coinFlip, LimSizeArray, MemorySnapshot
+from 2048 import Game as Board
 from numpy.random import choice
       
 class DeepQNet:
@@ -14,8 +15,25 @@ class DeepQNet:
 
         self.time = 1
 
-        self.board = Board()
+        self.board = Board(4)
         self.memory = LimSizeArray(sizeMemory)
+
+    # Functions for referencing board
+
+    def getState(self):
+        return self.board.array
+
+    def doAction(self, action):
+        if action == LEFT:
+            self.board.moveLeft()
+        elif action == RIGHT
+            self.board.moveRight()
+        elif action == UP:
+            self.board.moveUp()
+        elif action == down:
+            self.board.moveDown()
+        else:
+            raise ValueError
 
     # Functions for computing values
     
@@ -43,10 +61,10 @@ class DeepQNet:
     # Choose the next action & examine result
     
     def step(self):
-        oldState = self.board.state
+        oldState = self.getState()
         action   = self.chooseAction()
-        reward   = self.board.doAction(action)
-        newState = self.board.state
+        reward   = self.doAction(action)
+        newState = self.getState()
         
         details  = MemorySnap(oldState, action, reward, newState)
         
@@ -58,7 +76,7 @@ class DeepQNet:
         if heads:
             action = self.randomAction()
         else:
-            action = self.optimalAction(self.board.state)
+            action = self.optimalAction(self.getState())
            
         return action
         
