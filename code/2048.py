@@ -11,8 +11,296 @@ def main():
     #g.play()
     g.initialize()
     player = AI()
-    player.solveGame(g, output = True)
+    player.solveGame(g, 2,output = True)
     #player.findBestEnergyParam()
+
+class Game:
+
+    def __init__(self, size):
+        self.size = size
+        self.array = [[0 for i in range(size)] for i in range(size)]
+        self.allMoves = [CONST_UP, CONST_RIGHT, CONST_DOWN, CONST_LEFT]
+        self.possibleMoves = []
+
+    def getCell(self, x, y):
+        return self.array[x][y]
+
+    ###NEW###
+    def isOver(self):
+        return len(self.possibleMoves) == 0
+
+    #have to start the game with one tile in it
+    def initialize(self):
+        x = random.randint(0, self.size-1)
+        y = random.randint(0, self.size-1)
+        self.array[x][y] = 2
+        self.setPossibleMoves()
+
+    def reset(self):
+        self.array = [[0 for i in range(size)] for i in range(size)]
+
+    def copy(self):
+        result = Game(self.size)
+        result.array = self.array
+        return result
+
+    ###NEW###
+    def makeMove(self, move):
+        if type(move) == type("string"):
+            move = move.lower()
+        if move in ['u', 'up', '2', CONST_UP]:
+            self.moveUp()
+        elif move in ['d', 'down', '4', CONST_DOWN]:
+            self.moveDown()
+        elif move in ['r', 'right', '3', CONST_RIGHT]:
+            self.moveRight()
+        elif move in ['l','left', '1', CONST_LEFT]:
+            self.moveLeft()
+
+    ###NEW###
+    @staticmethod
+    def makeShift(grid, move):
+        newGrid = None
+        changed = False
+        if type(move) == type("string"):
+            move = move.lower()
+        if move in ['u', 'up', '2', CONST_UP]:
+            newGrid, changed = Game.shiftUp(grid, False)
+        elif move in ['d', 'down', '4', CONST_DOWN]:
+            newGrid, changed = Game.shiftDown(grid, False)
+        elif move in ['r', 'right', '3', CONST_RIGHT]:
+            newGrid, changed = Game.shiftRight(grid, False)
+        elif move in ['l','left', '1', CONST_LEFT]:
+            newGrid, changed = Game.shiftLeft(grid, False)
+
+        return (newGrid, changed)
+
+    ###NEW###
+    def setPossibleMoves(self):
+        result = []
+        for move in self.allMoves:
+            newGrid, changed = Game.makeShift(self.array, move)
+            if changed:
+                result += [move]
+        self.possibleMoves = result
+
+    def moveLeft(self):
+        newArray, changed = Game.shiftLeft(self.array, True)
+        self.array = newArray
+        if changed:
+            self.setPossibleMoves()
+        return changed
+
+    def moveRight(self):
+        newArray, changed = Game.shiftRight(self.array, True)
+        self.array = newArray
+        if changed:
+            self.setPossibleMoves()
+        return changed
+
+    def moveUp(self):
+        newArray, changed = Game.shiftUp(self.array, True)
+        self.array = newArray
+        if changed:
+            self.setPossibleMoves()
+        return changed
+
+    def moveDown(self):
+        newArray, changed = Game.shiftDown(self.array, True)
+        self.array = newArray
+        if changed:
+            self.setPossibleMoves()
+        return changed
+
+    @staticmethod
+    def pickRandomEmptyLoc(grid):
+        emptyLocs = [(x,y) for x in range(len(grid)) for y in range(len(grid)) if grid[x][y] == 0 ]
+        if len(emptyLocs) > 0:
+            return emptyLocs[int(random.random()*len(emptyLocs))]
+        else:
+            return (-1,-1)
+
+    @staticmethod
+    def shiftLeft(grid, spawn = True):
+        resultArray = []
+        size = len(grid)
+        for i in range(size):
+            row = grid[i]
+            reduced_row = []
+            for entry in row:
+                if not entry == 0:
+                    reduced_row += [entry]
+            final_row = []
+            for j in range(len(reduced_row)):
+                if j < len(reduced_row) -1 and reduced_row[j] == reduced_row[j+1]:
+                    final_row += [2*reduced_row[j]]
+                    reduced_row[j+1] = 0
+                elif reduced_row[j] > 0:
+                    final_row += [reduced_row[j]]
+            
+            final_row += [0]*(size-len(final_row))
+            resultArray += [final_row]
+
+        changed = not all([all([grid[i][j] == resultArray[i][j] for i in range(size)]) for j in range(size)])
+
+
+        if spawn and changed:
+            spawn_loc = Game.pickRandomEmptyLoc(resultArray)
+            if spawn_loc[0] != -1:
+                
+                rand_double = random.random()
+                if rand_double < .9:
+                    new = 2
+                else:
+                    new = 4
+                resultArray[spawn_loc[0]][spawn_loc[1]] = new
+
+        return (resultArray, changed)
+
+    @staticmethod
+    def shiftRight(grid, spawn = True):
+        resultArray = []
+        size = len(grid)
+        for i in range(size):
+            row = grid[i]
+            reduced_row = []
+            for entry in row:
+                if not entry == 0:
+                    reduced_row += [entry]
+            final_row = []
+            reduced_row.reverse()
+            for j in range(len(reduced_row)):
+                if j < len(reduced_row) -1 and reduced_row[j] == reduced_row[j+1]:
+                    final_row += [2*reduced_row[j]]
+                    reduced_row[j+1] = 0
+                elif reduced_row[j] > 0:
+                    final_row += [reduced_row[j]]
+            
+            final_row += [0]*(size-len(final_row))
+            final_row.reverse()
+            resultArray += [final_row]
+
+        changed = not all([all([grid[i][j] == resultArray[i][j] for i in range(size)]) for j in range(size)])
+
+
+        if spawn and changed:
+            spawn_loc = Game.pickRandomEmptyLoc(resultArray)
+            if spawn_loc[0] != -1:
+                
+                rand_double = random.random()
+                if rand_double < .9:
+                    new = 2
+                else:
+                    new = 4
+                resultArray[spawn_loc[0]][spawn_loc[1]] = new
+
+        return (resultArray, changed)
+
+    @staticmethod
+    def shiftUp(grid, spawn = True):
+        resultArray = []
+        size = len(grid)
+        for i in range(size):
+            col = [grid[x][i] for x in range(size)]
+            reduced_col = []
+            for entry in col:
+                if not entry == 0:
+                    reduced_col += [entry]
+            final_col = []
+            for j in range(len(reduced_col)):
+                if j < len(reduced_col) -1 and reduced_col[j] == reduced_col[j+1]:
+                    final_col += [2*reduced_col[j]]
+                    reduced_col[j+1] = 0
+                elif reduced_col[j] > 0:
+                    final_col += [reduced_col[j]]
+            
+            final_col += [0]*(size-len(final_col))
+            resultArray += [final_col]
+        resultArray = [[resultArray[i][j] for i in range(size)] for j in range(size)]
+
+        changed = not all([all([grid[i][j] == resultArray[i][j] for i in range(size)]) for j in range(size)])
+
+        if spawn and changed:
+            spawn_loc = Game.pickRandomEmptyLoc(resultArray)
+            if spawn_loc[0] != -1:
+                
+                rand_double = random.random()
+                if rand_double < .9:
+                    new = 2
+                else:
+                    new = 4
+                resultArray[spawn_loc[0]][spawn_loc[1]] = new
+
+        return (resultArray, changed)
+
+    @staticmethod
+    def shiftDown(grid, spawn = True):
+        resultArray = []
+        size = len(grid)
+        for i in range(size):
+            col = [grid[x][i] for x in range(size)]
+            reduced_col = []
+            for entry in col:
+                if not entry == 0:
+                    reduced_col += [entry]
+            reduced_col.reverse()
+            final_col = []
+            for j in range(len(reduced_col)):
+                if j < len(reduced_col) -1 and reduced_col[j] == reduced_col[j+1]:
+                    final_col += [2*reduced_col[j]]
+                    reduced_col[j+1] = 0
+                elif reduced_col[j] > 0:
+                    final_col += [reduced_col[j]]
+            
+            final_col += [0]*(size-len(final_col))
+            final_col.reverse()
+            resultArray += [final_col]
+
+        resultArray = [[resultArray[i][j] for i in range(size)] for j in range(size)]
+
+        changed = not all([all([grid[i][j] == resultArray[i][j] for i in range(size)]) for j in range(size)])
+
+
+        if spawn and changed:
+            spawn_loc = Game.pickRandomEmptyLoc(resultArray)
+            if spawn_loc[0] != -1:
+                
+                rand_double = random.random()
+                if rand_double < .9:
+                    new = 2
+                else:
+                    new = 4
+                resultArray[spawn_loc[0]][spawn_loc[1]] = new
+
+        return (resultArray, changed)
+
+
+    def __str__(self):
+        rows  = []
+        maxLength = 0
+        for i in range(self.size):
+            for j in range(self.size):
+                length = len(str(self.getCell(i,j)))
+                if length > maxLength:
+                    maxLength = length
+        width = maxLength * self.size + 3*(self.size -1) + 4
+        fmt = "{:>" + str(maxLength) + "}"
+
+        bar = "-"*width + "\n"
+        filler = "| " + (" "*maxLength + " | ") * self.size + "\n"
+        result = "" + bar
+        for i in range(self.size):
+            result += filler + "|"
+            for j in range(self.size):
+                num = self.getCell(i,j)
+                if num != 0:
+                    s = str(num)
+                else:
+                    s = ""
+                result += " " + fmt.format(s) + " |"
+            result += "\n" + filler + bar
+
+        return result
 
 class AI:
     def __init__(self, energy_param = .12):
@@ -250,260 +538,6 @@ class AI:
 
         results.sort(key = lambda x: x[1])
         return results[-1][0]
-
-
-class Game:
-
-    def __init__(self, size):
-        self.size = size
-        self.array = [[0 for i in range(size)] for i in range(size)]
-        self.full = False
-
-    def getCell(self, x, y):
-        return self.array[x][y]
-
-    #have to start the game with one tile in it
-    def initialize(self):
-        x = random.randint(0, self.size-1)
-        y = random.randint(0, self.size-1)
-        self.array[x][y] = 2
-
-    def copy(self):
-        result = Game(self.size)
-        result.array = self.array
-        result.full = self.full
-        return result
-
-    #this might not work anymore
-    def play(self):
-        self.initialize()
-        while not self.full:
-            print(self)
-            notValid = True
-            while notValid:
-                move = input("")
-                notValid = False
-                if move.lower() in ['u', 'up', '2']:
-                    self.moveUp()
-                elif move.lower() in ['d', 'down', '4']:
-                    self.moveDown()
-                elif move.lower() in ['r', 'right', '3']:
-                    self.moveRight()
-                elif move.lower() in ['l','left', '1']:
-                    self.moveLeft()
-                else:
-                    notValid = True
-        print(self)
-
-    def moveLeft(self):
-        newArray, changed = Game.shiftLeft(self.array, True)
-        self.array = newArray
-        return changed
-
-    def moveRight(self):
-        newArray, changed = Game.shiftRight(self.array, True)
-        self.array = newArray
-        return changed
-
-    def moveUp(self):
-        newArray, changed = Game.shiftUp(self.array, True)
-        self.array = newArray
-        return changed
-
-    def moveDown(self):
-        newArray, changed = Game.shiftDown(self.array, True)
-        self.array = newArray
-        return changed
-
-    @staticmethod
-    def pickRandomEmptyLoc(grid):
-        emptyLocs = [(x,y) for x in range(len(grid)) for y in range(len(grid)) if grid[x][y] == 0 ]
-        if len(emptyLocs) > 0:
-            return emptyLocs[int(random.random()*len(emptyLocs))]
-        else:
-            return (-1,-1)
-
-    @staticmethod
-    def shiftLeft(grid, spawn = True):
-        resultArray = []
-        size = len(grid)
-        for i in range(size):
-            row = grid[i]
-            reduced_row = []
-            for entry in row:
-                if not entry == 0:
-                    reduced_row += [entry]
-            final_row = []
-            for j in range(len(reduced_row)):
-                if j < len(reduced_row) -1 and reduced_row[j] == reduced_row[j+1]:
-                    final_row += [2*reduced_row[j]]
-                    reduced_row[j+1] = 0
-                elif reduced_row[j] > 0:
-                    final_row += [reduced_row[j]]
-            
-            final_row += [0]*(size-len(final_row))
-            resultArray += [final_row]
-
-        changed = not all([all([grid[i][j] == resultArray[i][j] for i in range(size)]) for j in range(size)])
-
-
-        if spawn and changed:
-            spawn_loc = Game.pickRandomEmptyLoc(resultArray)
-            if spawn_loc[0] != -1:
-                
-                rand_double = random.random()
-                if rand_double < .9:
-                    new = 2
-                else:
-                    new = 4
-                resultArray[spawn_loc[0]][spawn_loc[1]] = new
-
-        return (resultArray, changed)
-
-    @staticmethod
-    def shiftRight(grid, spawn = True):
-        resultArray = []
-        size = len(grid)
-        for i in range(size):
-            row = grid[i]
-            reduced_row = []
-            for entry in row:
-                if not entry == 0:
-                    reduced_row += [entry]
-            final_row = []
-            reduced_row.reverse()
-            for j in range(len(reduced_row)):
-                if j < len(reduced_row) -1 and reduced_row[j] == reduced_row[j+1]:
-                    final_row += [2*reduced_row[j]]
-                    reduced_row[j+1] = 0
-                elif reduced_row[j] > 0:
-                    final_row += [reduced_row[j]]
-            
-            final_row += [0]*(size-len(final_row))
-            final_row.reverse()
-            resultArray += [final_row]
-
-        changed = not all([all([grid[i][j] == resultArray[i][j] for i in range(size)]) for j in range(size)])
-
-
-        if spawn and changed:
-            spawn_loc = Game.pickRandomEmptyLoc(resultArray)
-            if spawn_loc[0] != -1:
-                
-                rand_double = random.random()
-                if rand_double < .9:
-                    new = 2
-                else:
-                    new = 4
-                resultArray[spawn_loc[0]][spawn_loc[1]] = new
-
-        return (resultArray, changed)
-
-    @staticmethod
-    def shiftUp(grid, spawn = True):
-        resultArray = []
-        size = len(grid)
-        for i in range(size):
-            col = [grid[x][i] for x in range(size)]
-            reduced_col = []
-            for entry in col:
-                if not entry == 0:
-                    reduced_col += [entry]
-            final_col = []
-            for j in range(len(reduced_col)):
-                if j < len(reduced_col) -1 and reduced_col[j] == reduced_col[j+1]:
-                    final_col += [2*reduced_col[j]]
-                    reduced_col[j+1] = 0
-                elif reduced_col[j] > 0:
-                    final_col += [reduced_col[j]]
-            
-            final_col += [0]*(size-len(final_col))
-            resultArray += [final_col]
-        resultArray = [[resultArray[i][j] for i in range(size)] for j in range(size)]
-
-        changed = not all([all([grid[i][j] == resultArray[i][j] for i in range(size)]) for j in range(size)])
-
-        if spawn and changed:
-            spawn_loc = Game.pickRandomEmptyLoc(resultArray)
-            if spawn_loc[0] != -1:
-                
-                rand_double = random.random()
-                if rand_double < .9:
-                    new = 2
-                else:
-                    new = 4
-                resultArray[spawn_loc[0]][spawn_loc[1]] = new
-
-        return (resultArray, changed)
-
-    @staticmethod
-    def shiftDown(grid, spawn = True):
-        resultArray = []
-        size = len(grid)
-        for i in range(size):
-            col = [grid[x][i] for x in range(size)]
-            reduced_col = []
-            for entry in col:
-                if not entry == 0:
-                    reduced_col += [entry]
-            reduced_col.reverse()
-            final_col = []
-            for j in range(len(reduced_col)):
-                if j < len(reduced_col) -1 and reduced_col[j] == reduced_col[j+1]:
-                    final_col += [2*reduced_col[j]]
-                    reduced_col[j+1] = 0
-                elif reduced_col[j] > 0:
-                    final_col += [reduced_col[j]]
-            
-            final_col += [0]*(size-len(final_col))
-            final_col.reverse()
-            resultArray += [final_col]
-
-        resultArray = [[resultArray[i][j] for i in range(size)] for j in range(size)]
-
-        changed = not all([all([grid[i][j] == resultArray[i][j] for i in range(size)]) for j in range(size)])
-
-
-        if spawn and changed:
-            spawn_loc = Game.pickRandomEmptyLoc(resultArray)
-            if spawn_loc[0] != -1:
-                
-                rand_double = random.random()
-                if rand_double < .9:
-                    new = 2
-                else:
-                    new = 4
-                resultArray[spawn_loc[0]][spawn_loc[1]] = new
-
-        return (resultArray, changed)
-
-
-    def __str__(self):
-        rows  = []
-        maxLength = 0
-        for i in range(self.size):
-            for j in range(self.size):
-                length = len(str(self.getCell(i,j)))
-                if length > maxLength:
-                    maxLength = length
-        width = maxLength * self.size + 3*(self.size -1) + 4
-        fmt = "{:>" + str(maxLength) + "}"
-
-        bar = "-"*width + "\n"
-        filler = "| " + (" "*maxLength + " | ") * self.size + "\n"
-        result = "" + bar
-        for i in range(self.size):
-            result += filler + "|"
-            for j in range(self.size):
-                num = self.getCell(i,j)
-                if num != 0:
-                    s = str(num)
-                else:
-                    s = ""
-                result += " " + fmt.format(s) + " |"
-            result += "\n" + filler + bar
-
-        return result
 
 class FeatureBuilder:
 
