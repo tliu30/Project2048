@@ -1,0 +1,110 @@
+import theanets
+from numpy.random import binomial
+
+def bernoulli(p, size = 1):
+    return binomial(1, p, size)
+    
+def coinflip(p):
+    flip = bernoulli(p)
+    if flip == 1:
+        return 
+    
+class LimSizeArray:
+    
+    def __init__(self, maxSize):
+        self.maxSize = maxSize
+        self.array   = (initialize an array somehow?)
+        self.curIx   = 0
+        self.full    = False
+        
+    def add(self, item):
+        ix = self.curIx % self.maxSize
+        self.array[ix] = item
+        self.curIx = self.curIx + 1
+        
+    def length(self):
+        if self.full:
+            length = self.maxSize
+        else:
+            length = self.curIx
+        return length
+        
+class MemorySnap:
+    
+    def __init__(self, curState, action, reward, nextState):
+        self.curState  = curState
+        self.action    = action
+        self.reward    = reward
+        self.nextState = nextState
+        
+class DeepQNet:
+    
+    def __init__(self, architecture):
+        self.net   = theanets.Experiment(theanets.Classifier, architecture)
+        self.q     = self.initQ()
+        self.board = Board()
+        self.learningRate
+        self.time
+        self.trainControl
+        self.memory = LimSizeArray(sizeMemory)
+    
+    def initQ(self):
+        pass
+    
+    # Choose the next action
+    
+    def step(self):
+        oldState = self.board.state
+        action   = self.chooseAction()
+        reward   = self.board.doAction(action)
+        newState = self.board.state
+        
+        details  = MemorySnap(oldState, action, reward, newState)
+        
+        self.addToMemory(details)
+    
+    def chooseAction(self):
+        heads = (bernoulli(self.learningRate) == 1)
+        if heads:
+            action = self.randomAction()
+        else:
+            action = self.optimalActionOrReward(self.board.state, ACTION)
+           
+        return action
+        
+    def randomAction(self):
+        pass
+    
+    def optimalAction(self, state):
+        return argmax(self.getPossValues(state))
+       
+    def optimalValue(self, state):
+        return max(values)
+        
+    def getPossValues(self, state):
+        values = [self.q(curState, action) for action in self.ACTIONS] 
+        return values
+        
+    # Do learning on the minibatches
+    def learn(self, miniBatchSize):
+        samples   = self.getRandomSamplesFromMemory(miniBatchSize)
+        curValues = [sample.q(sample.state, sample.action) for sample in samples]
+        optValues = [sample.reward + self.optimalValue(sample.nextState) for sample in samples]
+        
+        x = curValues
+        y = optValues
+        
+        self.net.train(x, y, self.trainControl)
+        
+    def addToMemory(self, item):
+        self.memory.add(item)
+        
+    def getFromMemory(self, ix):
+        return self.memory.get(ix)
+    
+    def getRandomSampleFromMemory(self, miniBatchSize):
+        numSamples = min(miniBatchSize, self.memory.length())
+        ixs = sample(miniBatchSize)
+        miniBatch = [self.memory.get(ix) for ix in ixs]
+        
+        return miniBatch
