@@ -11,7 +11,7 @@ def main():
     #g.play()
     g.initialize()
     player = AI()
-    player.solveGame(g, depth = 2, output = True)
+    player.solveGame(g, output = True)
     #player.findBestEnergyParam()
 
 class AI:
@@ -19,23 +19,26 @@ class AI:
         self.energy_param = energy_param
 
     def rewardFunction(self, grid):
-        return  AI.decayingSum(grid) - self.energy_param*AI.energy(grid) #- .05*AI.DFS(grid) #.01*AI.hyperbolic_energy(grid) 
+        if type(grid) == type(Game(0)):
+            grid = grid.array
+        return  AI.decayingSum(grid) - self.energy_param*AI.energy(grid) 
 
-        #uses reward function
+        #uses reward function, (returns final board, max value on board)
     def solveGame(self, board, depth = 2, output = True):
-        
         
         games = [] #list of strings of grids
 
         outcomes = {"energy" : [], "reward" : [], "energy / sum" : []} #records the change in these over time
-        i = 0
+        move_count = 0
         masterOptions = [CONST_UP,CONST_RIGHT, CONST_DOWN, CONST_LEFT]
-        options = masterOptions[:]
 
+
+        options = masterOptions[:]
         while len(options) > 0:
-            i += 1
-            if i % 100 == 0 and output:
-                print(i)
+            move_count += 1
+
+            if move_count % 100 == 0 and output:
+                print(move_count)
 
             move = self.exploreToDepth(board.array, depth)[1]
 
@@ -60,10 +63,10 @@ class AI:
                     options.remove(move)
             else:
                 options = masterOptions[:]
-            reward = self.rewardFunction(board.array)
+            reward = self.rewardFunction(board)
             outcomes["reward"] += [reward]
-            outcomes["energy"] += [AI.energy(board.array)]
-            outcomes["energy / sum"] += [1.*AI.energy(board.array) / AI.sumValues(board.array)]
+            outcomes["energy"] += [AI.energy(board)]
+            outcomes["energy / sum"] += [1.*AI.energy(board) / AI.sumValues(board)]
             if output:
                 state = str(board)
                 games += [state + move_str + ": " + str(reward)[:5]]
@@ -71,24 +74,109 @@ class AI:
             print(combine(games))
             #print(outcomes)
 
-        return (AI.maxValue(board.array), i)
+        return (AI.maxValue(board), move_count)
+
+
+
+    def exploreToDepth(self, grid, depth): #returns (average value of best move, best move)
+        if type(grid) == type(Game(0)):
+            grid = grid.array
+
+        if depth == 0:
+            return (self.rewardFunction(grid), -1)
+        else:
+            n = (depth + 2)
+            options = list(range(4))
+            values = []
+            spawn = depth > 1
+            for move in options[:]:
+                cum_reward = 0
+                remove = False
+                for i in range(n):
+                    if move == CONST_UP: #up
+                        new_grid, changed = Game.shiftUp(grid, spawn)
+                    elif move == CONST_RIGHT:#right
+                        new_grid, changed = Game.shiftRight(grid, spawn)
+                    elif move == CONST_DOWN:#down
+                        new_grid, changed = Game.shiftDown(grid, spawn)
+                    else:#left
+                        new_grid, changed = Game.shiftLeft(grid, spawn)
+                    if changed:
+                        cum_reward += self.exploreToDepth(new_grid, depth -1)[0]
+                    else:
+                        remove = True
+                if remove:
+                    options.remove(move)
+                else:
+                    values += [1. * cum_reward / n]
+            if len(options) == 0:
+                return (-1, -1)
+            else:
+                return (max(values), options[values.index(max(values))])
+
+
+    #random selection, no return value
+    def randomExploreGame(self, g, output = True):
+        games = []
+        outcomes = {"energy" : [], "reward" : [], "energy / sum" : []} #records the change in these over time
+        i = 0
+        options = [CONST_UP, CONST_RIGHT, CONST_LEFT]
+        while len(options) > 0:
+            i += 1
+            if i % 100 == 0:
+                print(i)
+            move = options[random.randint(0, len(options)-1)]
+            if move == CONST_UP:
+                move_made = g.moveUp()
+                move_str = 'Up'
+            elif move == CONST_RIGHT:
+                move_made = g.moveRight()
+                move_str = 'Right'
+            elif move == CONST_DOWN:
+                move_made = g.moveDown()
+                move_str = 'Down'
+            else:
+                move_made = g.moveLeft()
+                move_str = 'Left'
+            if not move_made:
+                options.remove(move)
+            else:
+                options = [CONST_UP, CONST_RIGHT, CONST_LEFT]
+            reward = self.rewardFunction(g)
+            outcomes["reward"] += [reward]
+            outcomes["energy"] += [AI.energy(g.array)]
+            outcomes["energy / sum"] += [AI.energy(g.array) / AI.sumValues(g.array)]
+            if output:
+                state = str(g)
+                games += [state + move_str + ": " + str(reward)[:5]]
+        if output:
+            print(combine(games))
+            #print(outcomes)
 
     @staticmethod
     def maxValue(grid):
+        if type(grid) == type(Game(0)):
+            grid = grid.array
         return max([max(x) for x in grid])
 
     @staticmethod
     def sumValues(grid):
+        if type(grid) == type(Game(0)):
+            grid = grid.array
         return sum([sum(x) for x in grid])
 
     @staticmethod
     def pctEmpty(grid):
+        if type(grid) == type(Game(0)):
+            grid = grid.array
         num_empty = sum([x.count(0) for x in grid])
         return 1. * num_empty / len(grid)**2
 
     @staticmethod
     def distribution(grid):
         dist = {}
+        if type(grid) == type(Game(0)):
+            grid = grid.array
         for row in grid:
             for entry in row:
                 if entry in dist:
@@ -99,6 +187,8 @@ class AI:
 
     @staticmethod
     def decayingSum(grid):
+        if type(grid) == type(Game(0)):
+            grid = grid.array
         bigList = []
         for row in grid:
             bigList += row
@@ -112,6 +202,8 @@ class AI:
 
     @staticmethod
     def energy(grid):
+        if type(grid) == type(Game(0)):
+            grid = grid.array
         totalEnergy = 0
         for i in range(len(grid)):
             for j in range(len(grid)):
@@ -160,83 +252,7 @@ class AI:
         return results[-1][0]
 
 
-    def exploreToDepth(self, grid, depth):
-        if depth == 0:
-            return (self.rewardFunction(grid), -1)
-        else:
-            n = (depth + 2)
-            options = list(range(4))
-            values = []
-            spawn = depth > 1
-            for move in options[:]:
-                cum_reward = 0
-                remove = False
-                for i in range(n):
-                    if move == CONST_UP: #up
-                        new_grid, changed = Game.shiftUp(grid, spawn)
-                    elif move == CONST_RIGHT:#right
-                        new_grid, changed = Game.shiftRight(grid, spawn)
-                    elif move == CONST_DOWN:#down
-                        new_grid, changed = Game.shiftDown(grid, spawn)
-                    else:#left
-                        new_grid, changed = Game.shiftLeft(grid, spawn)
-                    if changed:
-                        cum_reward += self.exploreToDepth(new_grid, depth -1)[0]
-                    else:
-                        remove = True
-                if remove:
-                    options.remove(move)
-                else:
-                    values += [1. * cum_reward / n]
-            if len(options) == 0:
-                return (-1, -1)
-            else:
-                return (max(values), options[values.index(max(values))])
-
-
-    #random selection
-    def exploreGame(self, g, output = True):
-        games = []
-        outcomes = []
-        i = 0
-        options = [CONST_UP, CONST_RIGHT, CONST_LEFT]
-        while len(options) > 0:
-            i += 1
-            if i % 100 == 0:
-                print(i)
-            move = options[random.randint(0, len(options)-1)]
-            if move == CONST_UP:
-                move_made = g.moveUp()
-                move_str = 'Up'
-            elif move == CONST_RIGHT:
-                move_made = g.moveRight()
-                move_str = 'Right'
-            elif move == CONST_DOWN:
-                move_made = g.moveDown()
-                move_str = 'Down'
-            else:
-                move_made = g.moveLeft()
-                move_str = 'Left'
-            if not move_made:
-                options.remove(move)
-            else:
-                options = [CONST_UP, CONST_RIGHT, CONST_LEFT]
-            reward = self.rewardFunction(g.array)
-            outcomes["reward"] += [reward]
-            outcomes["energy"] += [AI.energy(g.array)]
-            outcomes["energy / sum"] += [AI.energy(g.array) / AI.sumValues(g.array)]
-            if output:
-                state = str(g)
-                games += [state + move_str + ": " + str(reward)[:5]]
-        if output:
-            print(combine(games))
-            print(outcomes)
-
-
-
 class Game:
-
-    
 
     def __init__(self, size):
         self.size = size
