@@ -17,6 +17,9 @@ class LimSizeArray:
         self.array[ix] = item
         self.curIx = self.curIx + 1
         return None
+
+    def get(self, ix):
+        return self.array[ix]
         
     def length(self):
         if self.full:
